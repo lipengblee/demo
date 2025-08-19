@@ -150,8 +150,6 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
     @Override
     public AppTradeOrderSettlementRespVO settlementOrderPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO) {
 
-        log.info("[settlementOrderPrint] userId: {}, settlementReqVO: {}", userId, settlementReqVO);
-
         // 1. 获得收货地址
         MemberAddressRespDTO address = getAddress(userId, settlementReqVO.getAddressId());
         if (address != null) {

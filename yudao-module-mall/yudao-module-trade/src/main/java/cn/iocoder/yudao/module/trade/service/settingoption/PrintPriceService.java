@@ -30,7 +30,7 @@ public class PrintPriceService {
      * @param selectedOptions 选项的JSON字符串，格式为Map<选项ID, 选项值ID>
      * @return 计算出的单价，如果计算失败或无匹配项则返回0
      */
-    public Integer calculateUnitPrice(String selectedOptions) {
+    public Integer calculateUnitPrice(String selectedOptions, int totalPages, int copyCount) {
         // 将JSON字符串解析为Map<Integer, Integer>
         Map<Integer, Integer> options = JSON.parseObject(selectedOptions, new TypeReference<Map<Integer, Integer>>() {
         });
@@ -38,7 +38,6 @@ public class PrintPriceService {
         if (CollUtil.isEmpty(options)) {
             return 0;
         }
-
         try {
             List<SettingOptionValueDO> optionValues = settingOptionValueMapper.selectList(new QueryWrapper<SettingOptionValueDO>().in("option_id", options.keySet()).in("id", options.values()));
 
@@ -47,7 +46,9 @@ public class PrintPriceService {
                 return 0;
             }
 
-            return optionValues.stream().mapToInt(SettingOptionValueDO::getPrice).sum();
+            // 3. 计算总价格：单页总价 × 总页数 × 份数
+            int pageTotalPrice = optionValues.stream().mapToInt(SettingOptionValueDO::getPrice).sum();
+            return pageTotalPrice * totalPages * copyCount;
 
         } catch (Exception e) {
             log.error("计算单价失败，selectedOptions: {}", selectedOptions, e);

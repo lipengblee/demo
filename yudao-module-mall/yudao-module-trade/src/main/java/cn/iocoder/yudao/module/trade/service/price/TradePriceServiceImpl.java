@@ -94,8 +94,8 @@ public class TradePriceServiceImpl implements TradePriceService {
         // 遍历请求中的打印项目列表
         calculateReqBO.getItems().forEach(item -> {
             // 调用打印价格服务计算每个项目的单价
-            Integer checkUnitPrice = printPriceService.calculateUnitPrice(item.getSelectedOptions());
-            System.out.print(checkUnitPrice);
+            Integer checkPrice = printPriceService.calculateUnitPrice(item.getSelectedOptions(),item.getTotalPages(), item.getCopyCount());
+            System.out.print(checkPrice);
         });
 
         // 2.1 计算价格

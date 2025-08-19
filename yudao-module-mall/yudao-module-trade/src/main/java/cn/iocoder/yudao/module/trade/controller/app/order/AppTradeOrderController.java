@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.trade.controller.app.order;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pay.api.notify.dto.PayOrderNotifyReqDTO;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,8 @@ import java.util.Map;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.convertSet;
 import static cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
+import static cn.iocoder.yudao.module.trade.enums.PrintErrorCodeConstants.PRINT_PRICE_CONFIG_NOT_EXISTS;
+import static cn.iocoder.yudao.module.trade.enums.PrintErrorCodeConstants.TRADE_ORDER_PRINT_ITEMS_EMPTY;
 
 @Tag(name = "用户 App - 交易订单")
 @RestController
@@ -66,6 +70,17 @@ public class AppTradeOrderController {
     @GetMapping("/settlement-print")
     @Operation(summary = "获得打印订单结算信息")
     public CommonResult<AppTradeOrderSettlementRespVO> settlementOrderPrint(@Valid AppTradeOrderSettlementPrintReqVO settlementReqVO) {
+        // 1. 基础参数校验
+        if (settlementReqVO == null) {
+            return CommonResult.error(PRINT_PRICE_CONFIG_NOT_EXISTS);
+        }
+
+        // 2. 获取打印文档信息并校验
+        List<AppTradeOrderSettlementPrintReqVO.Item> printItems = settlementReqVO.getItems();
+        if (CollUtil.isEmpty(printItems)) {
+            return CommonResult.error(TRADE_ORDER_PRINT_ITEMS_EMPTY);
+        }
+
         return success(tradeOrderUpdateService.settlementOrderPrint(getLoginUserId(), settlementReqVO));
     }
 

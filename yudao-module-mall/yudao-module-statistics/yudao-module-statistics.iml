@@ -165,6 +165,8 @@
     <orderEntry type="library" name="Maven: org.apache.pdfbox:fontbox:2.0.29" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-tools:2.0.29" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-debugger:2.0.29" level="project" />
+    <orderEntry type="library" name="Maven: commons-beanutils:commons-beanutils:1.9.3" level="project" />
+    <orderEntry type="library" name="Maven: commons-collections:commons-collections:3.2.2" level="project" />
     <orderEntry type="module" module-name="yudao-module-product" />
     <orderEntry type="module" module-name="yudao-module-trade-api" />
     <orderEntry type="module" module-name="yudao-common" />

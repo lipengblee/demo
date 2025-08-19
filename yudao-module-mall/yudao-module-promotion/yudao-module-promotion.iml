@@ -246,6 +246,8 @@
     <orderEntry type="library" name="Maven: commons-logging:commons-logging:1.2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-tools:2.0.29" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-debugger:2.0.29" level="project" />
+    <orderEntry type="library" name="Maven: commons-beanutils:commons-beanutils:1.9.3" level="project" />
+    <orderEntry type="library" name="Maven: commons-collections:commons-collections:3.2.2" level="project" />
     <orderEntry type="module" module-name="yudao-module-member" />
     <orderEntry type="module" module-name="yudao-spring-boot-starter-biz-tenant" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:33.4.8-jre" level="project" />

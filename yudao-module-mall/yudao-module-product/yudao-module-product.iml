@@ -188,6 +188,8 @@
     <orderEntry type="library" name="Maven: commons-logging:commons-logging:1.2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-tools:2.0.29" level="project" />
     <orderEntry type="library" name="Maven: org.apache.pdfbox:pdfbox-debugger:2.0.29" level="project" />
+    <orderEntry type="library" name="Maven: commons-beanutils:commons-beanutils:1.9.3" level="project" />
+    <orderEntry type="library" name="Maven: commons-collections:commons-collections:3.2.2" level="project" />
     <orderEntry type="module" module-name="yudao-spring-boot-starter-biz-tenant" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-validation:3.5.3" level="project" />
     <orderEntry type="library" name="Maven: org.apache.tomcat.embed:tomcat-embed-el:10.1.42" level="project" />
