@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.trade.service.order;
 
 import cn.iocoder.yudao.module.trade.controller.admin.order.vo.*;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderCreateReqVO;
+import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementPrintReqVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementReqVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementRespVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.item.AppTradeOrderItemCommentCreateReqVO;
@@ -28,6 +29,15 @@ public interface TradeOrderUpdateService {
      * @return 订单结算结果
      */
     AppTradeOrderSettlementRespVO settlementOrder(Long userId, AppTradeOrderSettlementReqVO settlementReqVO);
+
+    /**
+     * 获得订单结算信息
+     *
+     * @param userId          登录用户
+     * @param settlementReqVO 订单结算Print请求
+     * @return 订单结算结果
+     */
+    AppTradeOrderSettlementRespVO settlementOrderPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO);
 
     /**
      * 【会员】创建交易订单

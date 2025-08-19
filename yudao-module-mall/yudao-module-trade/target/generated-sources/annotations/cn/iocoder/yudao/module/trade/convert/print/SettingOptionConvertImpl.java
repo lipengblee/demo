@@ -4,13 +4,14 @@ import cn.iocoder.yudao.module.trade.controller.app.print.vo.AppPrintSettingOpti
 import cn.iocoder.yudao.module.trade.controller.app.print.vo.AppPrintSettingOptionValueRespVO;
 import cn.iocoder.yudao.module.trade.dal.dataobject.settingoption.SettingOptionDO;
 import cn.iocoder.yudao.module.trade.dal.dataobject.settingoption.SettingOptionValueDO;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-08-12T15:52:04+0800",
+    date = "2025-08-18T17:52:03+0800",
     comments = "version: 1.6.3, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 public class SettingOptionConvertImpl implements SettingOptionConvert {
@@ -45,7 +46,9 @@ public class SettingOptionConvertImpl implements SettingOptionConvert {
         appPrintSettingOptionValueRespVO.setId( bean.getId() );
         appPrintSettingOptionValueRespVO.setOptionId( bean.getOptionId() );
         appPrintSettingOptionValueRespVO.setValue( bean.getValue() );
-        appPrintSettingOptionValueRespVO.setPrice( bean.getPrice() );
+        if ( bean.getPrice() != null ) {
+            appPrintSettingOptionValueRespVO.setPrice( BigDecimal.valueOf( bean.getPrice() ) );
+        }
         appPrintSettingOptionValueRespVO.setSort( bean.getSort() );
         appPrintSettingOptionValueRespVO.setRemark( bean.getRemark() );
 

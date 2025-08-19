@@ -34,6 +34,7 @@ import cn.iocoder.yudao.module.trade.enums.order.TradeOrderItemAfterSaleStatusEn
 import cn.iocoder.yudao.module.trade.framework.delivery.core.client.dto.ExpressTrackRespDTO;
 import cn.iocoder.yudao.module.trade.framework.order.config.TradeOrderProperties;
 import cn.iocoder.yudao.module.trade.service.brokerage.bo.BrokerageAddReqBO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateRespBO;
 import org.mapstruct.Mapper;
@@ -288,5 +289,33 @@ public interface TradeOrderConvert {
             @Mapping(target = "combinationPrice", source = "item.payPrice"),
     })
     CombinationRecordCreateReqDTO convert(TradeOrderDO order, TradeOrderItemDO item);
+
+    default TradePriceCalculatePrintReqBO convertPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO,
+                                                       List<CartDO> cartList) {
+        TradePriceCalculatePrintReqBO reqBO = new TradePriceCalculatePrintReqBO().setUserId(userId)
+                .setItems(new ArrayList<>(settlementReqVO.getItems().size()))
+                .setCouponId(settlementReqVO.getCouponId()).setPointStatus(settlementReqVO.getPointStatus())
+                // 物流信息
+                .setDeliveryType(settlementReqVO.getDeliveryType()).setAddressId(settlementReqVO.getAddressId())
+                .setPickUpStoreId(settlementReqVO.getPickUpStoreId())
+                // 各种活动
+                .setSeckillActivityId(settlementReqVO.getSeckillActivityId())
+                .setBargainRecordId(settlementReqVO.getBargainRecordId())
+                .setCombinationActivityId(settlementReqVO.getCombinationActivityId())
+                .setCombinationHeadId(settlementReqVO.getCombinationHeadId())
+                .setPointActivityId(settlementReqVO.getPointActivityId());
+        // 商品项的构建
+        Map<Long, CartDO> cartMap = convertMap(cartList, CartDO::getId);
+        for (AppTradeOrderSettlementPrintReqVO.Item item : settlementReqVO.getItems()) {
+            reqBO.getItems().add(new TradePriceCalculatePrintReqBO.Item()
+                    .setCartId(item.getCartId()).setSelected(true)
+                    .setTotalPages(item.getTotalPages())
+                    .setUnitPrice(item.getUnitPrice())
+                    .setTotalPrice(item.getTotalPrice())
+                    .setSelectedOptions(item.getSelectedOptions())
+                    .setCopyCount(item.getCopyCount())); // true 的原因，下单一定选中
+        }
+        return reqBO;
+    }
 
 }

@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.trade.service.price;
 
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeProductSettlementRespVO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintReqBO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintRespBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateRespBO;
 import jakarta.validation.Valid;
@@ -21,6 +23,14 @@ public interface TradePriceService {
      * @return 计算结果
      */
     TradePriceCalculateRespBO calculateOrderPrice(@Valid TradePriceCalculateReqBO calculateReqDTO);
+
+    /**
+     * 【订单】价格计算，云打印
+     *
+     * @param calculateReqDTO 计算信息
+     * @return 计算结果
+     */
+    TradePriceCalculatePrintRespBO calculateOrderPrintPrice(@Valid TradePriceCalculatePrintReqBO calculateReqDTO);
 
     /**
      * 【商品】价格计算，用于商品列表、商品详情

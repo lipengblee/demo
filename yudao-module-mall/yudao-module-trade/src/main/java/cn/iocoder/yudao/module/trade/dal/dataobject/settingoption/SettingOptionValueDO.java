@@ -31,15 +31,16 @@ public class SettingOptionValueDO extends BaseDO {
     /**
      * 关联选项ID（print_setting_option.id）
      */
+    @TableField("option_id") // 确保字段映射正确
     private Long optionId;
     /**
      * 选项值（如：A4、激光黑白）
      */
     private String value;
     /**
-     * 价格（单位：元）
+     * 价格（单位：分）
      */
-    private BigDecimal price;
+    private Integer price;
     /**
      * 排序（数字越小越靠前）
      */

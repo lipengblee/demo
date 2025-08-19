@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.promotion.api.reward.RewardActivityApi;
 import cn.iocoder.yudao.module.promotion.api.reward.dto.RewardActivityMatchRespDTO;
 import cn.iocoder.yudao.module.promotion.enums.common.PromotionTypeEnum;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeProductSettlementRespVO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintReqBO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintRespBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateRespBO;
 import cn.iocoder.yudao.module.trade.service.price.calculator.TradeDiscountActivityPriceCalculator;
@@ -20,8 +22,10 @@ import cn.iocoder.yudao.module.trade.service.price.calculator.TradePriceCalculat
 import cn.iocoder.yudao.module.trade.service.price.calculator.TradePriceCalculatorHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
+import cn.iocoder.yudao.module.trade.service.settingoption.PrintPriceService;
 
 import java.util.List;
 import java.util.Map;
@@ -34,8 +38,6 @@ import static cn.iocoder.yudao.module.trade.enums.ErrorCodeConstants.PRICE_CALCU
 
 /**
  * 价格计算 Service 实现类
- *
- * @author 芋道源码
  */
 @Service
 @Validated
@@ -56,9 +58,12 @@ public class TradePriceServiceImpl implements TradePriceService {
 
     @Resource
     private TradeDiscountActivityPriceCalculator discountActivityPriceCalculator;
+    @Autowired
+    private PrintPriceService printPriceService;
 
     @Override
     public TradePriceCalculateRespBO calculateOrderPrice(TradePriceCalculateReqBO calculateReqBO) {
+        System.out.print(calculateReqBO);
         // 1.1 获得商品 SKU 数组
         List<ProductSkuRespDTO> skuList = checkSkuList(calculateReqBO);
         // 1.2 获得商品 SPU 数组
@@ -76,6 +81,39 @@ public class TradePriceServiceImpl implements TradePriceService {
             throw exception(PRICE_CALCULATE_PAY_PRICE_ILLEGAL);
         }
         return calculateRespBO;
+    }
+
+    /**
+     * 计算订单打印价格
+     *
+     * @param calculateReqBO 计算价格的请求参数对象
+     * @return TradePriceCalculatePrintRespBO 计算价格的响应结果对象
+     */
+    public TradePriceCalculatePrintRespBO calculateOrderPrintPrice(TradePriceCalculatePrintReqBO calculateReqBO) {
+
+        // 遍历请求中的打印项目列表
+        calculateReqBO.getItems().forEach(item -> {
+            // 调用打印价格服务计算每个项目的单价
+            Integer checkUnitPrice = printPriceService.calculateUnitPrice(item.getSelectedOptions());
+            System.out.print(checkUnitPrice);
+        });
+
+        // 2.1 计算价格
+        // 使用价格计算助手类构建计算打印价格的响应对象
+        TradePriceCalculatePrintRespBO calculateRespBO = TradePriceCalculatorHelper.buildCalculatePrintResp(calculateReqBO);
+
+        // 以下代码被注释，可能是暂时不需要执行或处于调试阶段
+        // 遍历所有价格计算器并执行计算
+//        priceCalculators.forEach(calculator -> calculator.calculate(calculateReqBO, calculateRespBO));
+//        // 2.2  如果最终支付金额小于等于 0，则抛出业务异常
+//        if (calculateReqBO.getPointActivityId() == null // 积分订单，允许支付金额为 0
+//                && calculateRespBO.getPrice().getPayPrice() <= 0) {
+//            log.error("[calculatePrice][价格计算不正确，请求 calculateReqDTO({})，结果 priceCalculate({})]",
+//                    calculateReqBO, calculateRespBO);
+//            throw exception(PRICE_CALCULATE_PAY_PRICE_ILLEGAL);
+//        }
+//        return calculateRespBO;
+        return null;
     }
 
     private List<ProductSkuRespDTO> checkSkuList(TradePriceCalculateReqBO reqBO) {
@@ -113,7 +151,7 @@ public class TradePriceServiceImpl implements TradePriceService {
                 discountActivityApi.getMatchDiscountProductListBySkuIds(convertSet(allSkuList, ProductSkuRespDTO::getId)),
                 DiscountProductRespDTO::getSkuId);
         // 1.4 获得满减送活动
-       List<RewardActivityMatchRespDTO> rewardActivityMap = rewardActivityApi.getMatchRewardActivityListBySpuIds(spuIds);
+        List<RewardActivityMatchRespDTO> rewardActivityMap = rewardActivityApi.getMatchRewardActivityListBySpuIds(spuIds);
 
         // 2. 价格计算
         return convertList(spuIds, spuId -> {

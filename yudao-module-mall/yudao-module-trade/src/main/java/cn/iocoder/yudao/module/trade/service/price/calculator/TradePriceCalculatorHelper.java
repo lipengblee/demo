@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.product.api.sku.dto.ProductSkuRespDTO;
 import cn.iocoder.yudao.module.product.api.spu.dto.ProductSpuRespDTO;
 import cn.iocoder.yudao.module.trade.dal.dataobject.order.TradeOrderItemDO;
 import cn.iocoder.yudao.module.trade.enums.order.TradeOrderTypeEnum;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintReqBO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintRespBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateRespBO;
 
@@ -19,13 +21,26 @@ import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.
 import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.getSumValue;
 import static java.util.Collections.singletonList;
 
+import cn.iocoder.yudao.module.trade.service.settingoption.PrintPriceService;
+import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson.JSON;
+
+import cn.iocoder.yudao.module.trade.dal.dataobject.settingoption.SettingOptionValueDO;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import cn.hutool.core.collection.CollUtil;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 /**
  * {@link TradePriceCalculator} 的工具类
- *
+ * <p>
  * 主要实现对 {@link TradePriceCalculateRespBO} 计算结果的操作
  *
  * @author 芋道源码
  */
+@Slf4j
 public class TradePriceCalculatorHelper {
 
     public static TradePriceCalculateRespBO buildCalculateResp(TradePriceCalculateReqBO param,
@@ -74,6 +89,36 @@ public class TradePriceCalculatorHelper {
         return result;
     }
 
+
+    public static TradePriceCalculatePrintRespBO buildCalculatePrintResp(TradePriceCalculatePrintReqBO param) {
+        // 创建 PriceCalculateRespDTO 对象
+        TradePriceCalculatePrintRespBO result = new TradePriceCalculatePrintRespBO();
+        result.setType(getOrderTypePrint(param)).setPromotions(new ArrayList<>()).setGiveCouponTemplateCounts(new LinkedHashMap<>());
+
+        // 创建它的 OrderItem 属性
+        result.setItems(new ArrayList<>(param.getItems().size()));
+        param.getItems().forEach(item -> {
+
+            // 商品项
+            TradePriceCalculatePrintRespBO.OrderItem orderItem = new TradePriceCalculatePrintRespBO.OrderItem();
+            result.getItems().add(orderItem);
+
+            orderItem.setCount(item.getCount()).setCartId(item.getCartId())
+                    .setCopyCount(item.getCopyCount())
+                    .setTotalPages(item.getTotalPages())
+                    .setUnitPrice(item.getUnitPrice())
+                    .setTotalPrice(item.getTotalPrice())
+                    .setSelectedOptions(item.getSelectedOptions())
+                    .setSelected(item.getSelected());
+        });
+
+        // 创建它的 Price 属性
+        result.setPrice(new TradePriceCalculatePrintRespBO.Price());
+        recountAllPricePrint(result);
+//        recountAllGivePointPrint(result);
+        return result;
+    }
+
     /**
      * 计算订单类型
      *
@@ -81,6 +126,22 @@ public class TradePriceCalculatorHelper {
      * @return 订单类型
      */
     private static Integer getOrderType(TradePriceCalculateReqBO param) {
+        if (param.getSeckillActivityId() != null) {
+            return TradeOrderTypeEnum.SECKILL.getType();
+        }
+        if (param.getCombinationActivityId() != null) {
+            return TradeOrderTypeEnum.COMBINATION.getType();
+        }
+        if (param.getBargainRecordId() != null) {
+            return TradeOrderTypeEnum.BARGAIN.getType();
+        }
+        if (param.getPointActivityId() != null) {
+            return TradeOrderTypeEnum.POINT.getType();
+        }
+        return TradeOrderTypeEnum.NORMAL.getType();
+    }
+
+    private static Integer getOrderTypePrint(TradePriceCalculatePrintReqBO param) {
         if (param.getSeckillActivityId() != null) {
             return TradeOrderTypeEnum.SECKILL.getType();
         }
@@ -121,12 +182,36 @@ public class TradePriceCalculatorHelper {
         });
     }
 
+    public static void recountAllPricePrint(TradePriceCalculatePrintRespBO result) {
+        // 先重置
+        TradePriceCalculatePrintRespBO.Price price = result.getPrice();
+        price.setTotalPrice(0).setDiscountPrice(0).setDeliveryPrice(0)
+                .setCouponPrice(0).setPointPrice(0).setVipPrice(0).setPayPrice(0);
+        // 再合计 item
+        result.getItems().forEach(item -> {
+            if (!item.getSelected()) {
+                return;
+            }
+            price.setTotalPrice(price.getTotalPrice() + item.getPrice() * item.getCount());
+            price.setDiscountPrice(price.getDiscountPrice() + item.getDiscountPrice());
+            price.setDeliveryPrice(price.getDeliveryPrice() + item.getDeliveryPrice());
+            price.setCouponPrice(price.getCouponPrice() + item.getCouponPrice());
+            price.setPointPrice(price.getPointPrice() + item.getPointPrice());
+            price.setVipPrice(price.getVipPrice() + item.getVipPrice());
+            price.setPayPrice(price.getPayPrice() + item.getPayPrice());
+        });
+    }
+
     /**
      * 基于订单项，重新计算赠送积分
      *
      * @param result 计算结果
      */
     public static void recountAllGivePoint(TradePriceCalculateRespBO result) {
+        result.setGivePoint(getSumValue(result.getItems(), item -> item.getSelected() ? item.getGivePoint() : 0, Integer::sum));
+    }
+
+    public static void recountAllGivePointPrint(TradePriceCalculatePrintRespBO result) {
         result.setGivePoint(getSumValue(result.getItems(), item -> item.getSelected() ? item.getGivePoint() : 0, Integer::sum));
     }
 
@@ -147,7 +232,7 @@ public class TradePriceCalculatorHelper {
 
     /**
      * 重新计算每个订单项的支付金额
-     *
+     * <p>
      * 【目前主要是单测使用】
      *
      * @param orderItems 订单项数组
@@ -205,7 +290,7 @@ public class TradePriceCalculatorHelper {
 
     /**
      * 按照支付金额，返回每个订单项的分摊金额数组
-     *
+     * <p>
      * 实际上 price 不仅仅可以传递的是金额，也可以是积分。因为它的实现逻辑，就是根据 payPrice 做分摊而已
      *
      * @param orderItems 订单项数组
@@ -241,7 +326,7 @@ public class TradePriceCalculatorHelper {
 
     /**
      * 计算订单调价价格分摊
-     *
+     * <p>
      * 和 {@link #dividePrice(List, Integer)} 逻辑一致，只是传入的是 TradeOrderItemDO 对象
      *
      * @param items 订单项

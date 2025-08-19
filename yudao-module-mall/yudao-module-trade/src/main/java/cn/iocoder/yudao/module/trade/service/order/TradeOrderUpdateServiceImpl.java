@@ -32,6 +32,7 @@ import cn.iocoder.yudao.module.system.api.social.SocialClientApi;
 import cn.iocoder.yudao.module.system.api.social.dto.SocialWxaSubscribeMessageSendReqDTO;
 import cn.iocoder.yudao.module.trade.controller.admin.order.vo.*;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderCreateReqVO;
+import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementPrintReqVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementReqVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.AppTradeOrderSettlementRespVO;
 import cn.iocoder.yudao.module.trade.controller.app.order.vo.item.AppTradeOrderItemCommentCreateReqVO;
@@ -56,6 +57,8 @@ import cn.iocoder.yudao.module.trade.service.message.TradeMessageService;
 import cn.iocoder.yudao.module.trade.service.message.bo.TradeOrderMessageWhenDeliveryOrderReqBO;
 import cn.iocoder.yudao.module.trade.service.order.handler.TradeOrderHandler;
 import cn.iocoder.yudao.module.trade.service.price.TradePriceService;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintReqBO;
+import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculatePrintRespBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import cn.iocoder.yudao.module.trade.service.price.bo.TradePriceCalculateRespBO;
 import cn.iocoder.yudao.module.trade.service.price.calculator.TradePriceCalculatorHelper;
@@ -144,6 +147,26 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
         return TradeOrderConvert.INSTANCE.convert(calculateRespBO, address);
     }
 
+    @Override
+    public AppTradeOrderSettlementRespVO settlementOrderPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO) {
+
+        log.info("[settlementOrderPrint] userId: {}, settlementReqVO: {}", userId, settlementReqVO);
+
+        // 1. 获得收货地址
+        MemberAddressRespDTO address = getAddress(userId, settlementReqVO.getAddressId());
+        if (address != null) {
+            settlementReqVO.setAddressId(address.getId());
+        }
+
+        // 2. 计算价格
+        TradePriceCalculatePrintRespBO calculateRespBO = calculatePrintPrice(userId, settlementReqVO);
+
+        // 3. 拼接返回
+//        return TradeOrderConvert.INSTANCE.convert(calculateRespBO, address);
+
+        return null;
+    }
+
     /**
      * 获得用户地址
      *
@@ -175,6 +198,24 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
         calculateReqBO.getItems().forEach(item -> Assert.isTrue(item.getSelected(), // 防御性编程，保证都是选中的
                 "商品({}) 未设置为选中", item.getSkuId()));
         return tradePriceService.calculateOrderPrice(calculateReqBO);
+    }
+
+    /**
+     * 计算并打印订单价格
+     *
+     * @param userId          用户ID
+     * @param settlementReqVO 结算请求参数对象
+     * @return TradePriceCalculatePrintRespBO 价格计算并打印后的响应业务对象
+     */
+    private TradePriceCalculatePrintRespBO calculatePrintPrice(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO) {
+        // 1. 如果来自购物车，则获得购物车的商品
+        List<CartDO> cartList = cartService.getCartList(userId,
+                convertSet(settlementReqVO.getItems(), AppTradeOrderSettlementPrintReqVO.Item::getCartId));
+
+        // 2. 计算价格
+        TradePriceCalculatePrintReqBO calculateReqBO = TradeOrderConvert.INSTANCE.convertPrint(userId, settlementReqVO, cartList);
+        System.out.print(calculateReqBO); // 打印计算请求对象（调试用）
+        return tradePriceService.calculateOrderPrintPrice(calculateReqBO); // 调用价格服务计算打印价格
     }
 
     @Override

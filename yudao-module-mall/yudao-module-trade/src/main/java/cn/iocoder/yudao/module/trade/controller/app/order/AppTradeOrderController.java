@@ -63,6 +63,12 @@ public class AppTradeOrderController {
         return success(tradeOrderUpdateService.settlementOrder(getLoginUserId(), settlementReqVO));
     }
 
+    @GetMapping("/settlement-print")
+    @Operation(summary = "获得打印订单结算信息")
+    public CommonResult<AppTradeOrderSettlementRespVO> settlementOrderPrint(@Valid AppTradeOrderSettlementPrintReqVO settlementReqVO) {
+        return success(tradeOrderUpdateService.settlementOrderPrint(getLoginUserId(), settlementReqVO));
+    }
+
     @GetMapping("/settlement-product")
     @Operation(summary = "获得商品结算信息", description = "用于商品列表、商品详情，获得参与活动后的价格信息")
     @Parameter(name = "spuIds", description = "商品 SPU 编号数组")
