@@ -7,6 +7,7 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.star.lp.framework.common.exception.ServiceException;
 import com.star.lp.framework.common.pojo.PageResult;
 import com.star.lp.module.infra.api.file.FileApi;
+import com.star.lp.module.infra.framework.file.core.client.FileClient;
 import com.star.lp.module.product.controller.admin.spu.vo.ProductSkuSaveReqVO;
 import com.star.lp.module.product.controller.admin.spu.vo.ProductSpuSaveReqVO;
 import com.star.lp.module.product.controller.app.print.vo.*;
@@ -19,9 +20,16 @@ import com.star.lp.module.product.service.printconfig.PrintConfigService;
 import com.star.lp.module.product.service.property.ProductPropertyService;
 import com.star.lp.module.product.service.property.ProductPropertyValueService;
 import com.star.lp.module.product.service.spu.ProductSpuService;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfConverter;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.poi.hslf.usermodel.HSLFSlideShow;
@@ -41,6 +49,8 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -113,7 +123,7 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
         // 4. 解析文档信息
         AppProductPrintDocumentInfoRespVO docInfo = parseDocumentInfo(file);
 
-        // 5. 生成缩略图（异步处理）
+        // 5. 生成缩略图（异步处理）- 未完成
         String thumbnailUrl = generateThumbnail(file, fileUrl);
 
         // 6. 保存到数据库
@@ -232,7 +242,7 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
             }
         }
         if (skuId == null) {
-            throw new ServiceException(401,"创建SKU失败，无法获取SKU ID");
+            throw new ServiceException(401, "创建SKU失败，无法获取SKU ID");
         }
 
         AppProductPrintSpuCreateRespVO respVO = new AppProductPrintSpuCreateRespVO();
@@ -268,29 +278,6 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
     }
 
     @Override
-    public AppProductPrintOptionsRespVO getPrintOptions() {
-
-        // 从数据库加载打印选项配置
-        AppProductPrintOptionsRespVO options = new AppProductPrintOptionsRespVO();
-
-        // 获取纸张尺寸选项
-        options.setPaperSizes(getPrintOptionsByPropertyName("纸张尺寸"));
-
-        // 获取打印质量选项
-        options.setQualities(getPrintOptionsByPropertyName("打印质量"));
-
-        // 获取颜色模式选项
-        options.setColorModes(getPrintOptionsByPropertyName("颜色模式"));
-
-        // 获取双面打印选项
-        options.setDuplexOptions(getPrintOptionsByPropertyName("双面打印"));
-
-        // 获取装订选项
-        options.setBindingOptions(getPrintOptionsByPropertyName("装订方式"));
-
-        return options;
-    }
-
     public List<AppPrintSettingOptionRespVO> getPrintOptionsType() {
         // 商品类型 1-实物商品 2-云打印服务
         List<ProductPropertyDO> cloudPrintProperties = productPropertyService.getPropertyListByProductType(2);
@@ -394,7 +381,8 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
 
     private String uploadFileToStorage(MultipartFile file) {
         try {
-            String path = fileApi.createFile(file.getBytes(), file.getOriginalFilename(), null, null);
+            //屏蔽文件名称
+            String path = fileApi.createFile(file.getBytes(), null, null, null);
             return path;
         } catch (Exception e) {
             log.error("文件上传失败", e);
@@ -590,6 +578,7 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
 
     /**
      * 生成包含当前时间和名称的字符串
+     *
      * @param name 关联的名称
      * @return 格式为[名称_时间戳]的字符串（例如：文档打印_20240615143025）
      */
@@ -612,6 +601,13 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
     }
 
 
+    /**
+     * 构建打印商品SPU保存请求对象
+     *
+     * @param createReqVO 创建打印商品的请求对象
+     * @param documents   打印文档列表
+     * @return 构建好的商品SPU保存请求对象
+     */
     private ProductSpuSaveReqVO buildPrintSpuSaveReqVO(AppProductPrintSpuCreateReqVO createReqVO,
                                                        List<ProductPrintDocumentDO> documents) {
         //获取打印相关配置
@@ -728,26 +724,384 @@ public class ProductPrintDocumentServiceImpl implements ProductPrintDocumentServ
         return setting;
     }
 
-    private List<AppProductPrintOptionsRespVO.PrintOption> getPrintOptionsByPropertyName(String propertyName) {
-        // 根据属性名称查询相关的属性值
-        ProductPropertyDO property = productPropertyService.getPropertyByName(propertyName);
-        if (property == null) {
-            return new ArrayList<>();
+    //---------------------------------------------------------------------------------
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProductPrintDocumentDO mergeDocumentsToPdf(Long userId, AppProductPrintDocumentMergeReqVO mergeReqVO) {
+        // 1. 校验文档所有权和存在性
+        List<ProductPrintDocumentDO> documents = validateDocumentsForMerge(userId, mergeReqVO.getDocumentIds());
+
+        // 2. 检查用户文档数量限制
+        validateUserDocumentCount(userId);
+
+        // 3. 执行文档合成
+        byte[] mergedPdfBytes = executeDocumentMerge(documents);
+
+        // 4. 上传合成后的PDF文件
+        String mergedFileUrl = uploadMergedPdf(mergedPdfBytes, mergeReqVO.getPdfName());
+
+        // 5. 计算文件哈希值，检查重复
+        String fileHash = DigestUtil.md5Hex(mergedPdfBytes);
+        ProductPrintDocumentDO existingDoc = printDocumentMapper.selectByUserIdAndFileHash(userId, fileHash);
+        if (existingDoc != null) {
+            return existingDoc;
         }
 
-        List<ProductPropertyValueDO> values = productPropertyValueService.getPropertyValueListByPropertyId(Collections.singleton(property.getId()));
+        // 6. 生成缩略图
+        String thumbnailUrl = generatePdfThumbnail(mergedPdfBytes);
 
-        return values.stream().map(value -> {
-            AppProductPrintOptionsRespVO.PrintOption option = new AppProductPrintOptionsRespVO.PrintOption();
-            option.setPropertyId(property.getId());
-            option.setPropertyName(property.getName());
-            option.setValueId(value.getId());
-            option.setValueName(value.getName());
-            option.setBasePrice(100); // 基础价格
-            option.setPricePerPage(10); // 每页价格
-            option.setIsDefault(false); // 默认选择
-            return option;
-        }).collect(Collectors.toList());
+        // 7. 计算总页数
+        int totalPages = calculateTotalPages(mergedPdfBytes);
+
+        // 8. 保存到数据库
+        ProductPrintDocumentDO mergedDocument = ProductPrintDocumentDO.builder()
+                .userId(userId)
+                .name(mergeReqVO.getPdfName())
+                .originalName(mergeReqVO.getPdfName())
+                .fileType("pdf")
+                .fileSize((long) mergedPdfBytes.length)
+                .fileUrl(mergedFileUrl)
+                .thumbnailUrl(thumbnailUrl)
+                .pageCount(totalPages)
+                .status(ProductPrintDocumentDO.STATUS_NORMAL)
+                .fileHash(fileHash)
+                .remark("由" + documents.size() + "个文档合成")
+                .build();
+
+        printDocumentMapper.insert(mergedDocument);
+
+        log.info("用户 {} 合成PDF成功，合成文档数量: {}, 新PDF ID: {}",
+                userId, documents.size(), mergedDocument.getId());
+
+        return mergedDocument;
+    }
+    
+    private byte[] executeDocumentMerge(List<ProductPrintDocumentDO> documents) {
+        List<PDDocument> sourceDocuments = new ArrayList<>();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             PDDocument mergedDocument = new PDDocument()) {
+
+            // 使用PDFMergerUtility来合并文档
+            PDFMergerUtility merger = new PDFMergerUtility();
+
+            // 首先将所有文档转换为PDF并加载到PDDocument中
+            for (ProductPrintDocumentDO doc : documents) {
+                try {
+                    byte[] convertedPdfBytes = convertDocumentToPdf(doc);
+                    PDDocument sourceDoc = PDDocument.load(new ByteArrayInputStream(convertedPdfBytes));
+                    sourceDocuments.add(sourceDoc);
+                    merger.appendDocument(mergedDocument, sourceDoc);
+                } catch (Exception e) {
+                    log.error("处理文档失败: {}, 错误: {}", doc.getName(), e.getMessage());
+                }
+            }
+
+            // 保存合并后的文档
+            mergedDocument.save(outputStream);
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            log.error("文档合成失败", e);
+            throw exception(DOCUMENT_MERGE_FAILED);
+        } finally {
+            // 确保关闭所有源文档
+            for (PDDocument doc : sourceDocuments) {
+                try {
+                    doc.close();
+                } catch (IOException e) {
+                    log.error("关闭PDF文档失败", e);
+                }
+            }
+        }
+    }
+
+    // 6. 文档转PDF方法
+    private byte[] convertDocumentToPdf(ProductPrintDocumentDO doc) {
+        String fileType = doc.getFileType().toLowerCase();
+
+        try {
+            // 下载原始文件
+            byte[] fileBytes = downloadFile(doc.getFileUrl());
+
+            switch (fileType) {
+                case "pdf":
+                    return fileBytes; // PDF文件直接返回
+                case "doc":
+                case "docx":
+                    return convertWordToPdf(fileBytes,fileType);
+//                case "ppt":
+//                case "pptx":
+//                    return convertPowerPointToPdf(fileBytes,fileType);
+                case "jpg":
+                case "jpeg":
+                case "png":
+                case "bmp":
+                    return convertImageToPdf(fileBytes,fileType);
+                default:
+                    throw new ServiceException(400, "不支持的文件格式: " + fileType);
+            }
+        } catch (Exception e) {
+            log.error("文档转PDF失败: {}", doc.getName(), e);
+            throw exception(DOCUMENT_CONVERT_FAILED, doc.getName());
+        }
+    }
+
+    // 7. Word转PDF
+    private byte[] convertWordToPdf(byte[] wordBytes, String fileType) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             PDDocument pdfDocument = new PDDocument()) {
+
+            if ("docx".equals(fileType)) {
+                try (XWPFDocument wordDocument = new XWPFDocument(new ByteArrayInputStream(wordBytes))) {
+                    convertWordDocumentToPdf(wordDocument,pdfDocument);
+                }
+            } else {
+                try (HWPFDocument wordDocument = new HWPFDocument(new ByteArrayInputStream(wordBytes))) {
+                    convertLegacyWordToPdf(wordDocument,pdfDocument);
+                }
+            }
+
+            pdfDocument.save(outputStream);
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            throw new ServiceException(500, "Word转PDF失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 转换docx文档为PDF（写入到已创建的PDDocument）
+     */
+    private void convertWordDocumentToPdf(XWPFDocument wordDocument, PDDocument pdfDocument) throws IOException {
+        // 使用XWPFConverter将docx内容转换到临时输出流
+        try (ByteArrayOutputStream tempOut = new ByteArrayOutputStream()) {
+            PdfOptions options = PdfOptions.create();
+            PdfConverter.getInstance().convert(wordDocument, tempOut, options);
+
+            // 将临时流中的PDF内容合并到目标PDDocument
+            try (PDDocument tempDoc = PDDocument.load(tempOut.toByteArray())) {
+                for (PDPage page : tempDoc.getPages()) {
+                    pdfDocument.addPage(page);
+                }
+            }
+        }
+    }
+
+    /**
+     * 转换doc文档为PDF（写入到已创建的PDDocument）
+     * 注意：HWPF对doc转PDF支持有限，复杂格式可能会有问题
+     */
+    private void convertLegacyWordToPdf(HWPFDocument wordDocument, PDDocument pdfDocument) throws IOException {
+        // 提取doc文档文本内容（简单转换示例）
+        String content = String.valueOf(wordDocument.getText());
+
+        // 创建PDF页面并写入文本
+        PDPage page = new PDPage();
+        pdfDocument.addPage(page);
+
+        try (PDPageContentStream contentStream = new PDPageContentStream(pdfDocument, page)) {
+            contentStream.setFont(PDType1Font.HELVETICA, 12);
+            contentStream.beginText();
+            contentStream.newLineAtOffset(50, 700); // 页边距
+            String[] lines = content.split("\n");
+            for (String line : lines) {
+                contentStream.showText(line);
+                contentStream.newLineAtOffset(0, -15); // 行间距
+            }
+            contentStream.endText();
+        }
+    }
+
+    // 10. 图片转PDF
+    private byte[] convertImageToPdf(byte[] imageBytes, String fileType) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             PDDocument pdfDocument = new PDDocument()) {
+
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image == null) {
+                throw new ServiceException(400, "无法读取图片文件");
+            }
+
+            // 创建PDF页面
+            PDPage page = new PDPage();
+            pdfDocument.addPage(page);
+
+            // 将图片添加到页面
+            PDImageXObject pdImage = PDImageXObject.createFromByteArray(pdfDocument, imageBytes, "image");
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(pdfDocument, page)) {
+                // 计算图片在页面中的位置和大小
+                float pageWidth = page.getMediaBox().getWidth();
+                float pageHeight = page.getMediaBox().getHeight();
+
+                float imageWidth = image.getWidth();
+                float imageHeight = image.getHeight();
+
+                // 保持比例缩放
+                float scaleX = (pageWidth - 40) / imageWidth; // 留20像素边距
+                float scaleY = (pageHeight - 40) / imageHeight;
+                float scale = Math.min(scaleX, scaleY);
+
+                float scaledWidth = imageWidth * scale;
+                float scaledHeight = imageHeight * scale;
+
+                float x = (pageWidth - scaledWidth) / 2;
+                float y = (pageHeight - scaledHeight) / 2;
+
+                contentStream.drawImage(pdImage, x, y, scaledWidth, scaledHeight);
+            }
+
+            pdfDocument.save(outputStream);
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            throw new ServiceException(500, "图片转PDF失败: " + e.getMessage());
+        }
+    }
+
+    // 11. 添加目录页面
+    private void addTableOfContents(PDDocument document, List<ProductPrintDocumentDO> documents) {
+        try {
+            PDPage tocPage = new PDPage();
+            document.addPage(tocPage);
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, tocPage)) {
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 20);
+                contentStream.newLineAtOffset(50, 750);
+                contentStream.showText("目录");
+                contentStream.endText();
+
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA, 12);
+                contentStream.newLineAtOffset(50, 700);
+
+                int pageNumber = 2; // 目录页是第1页，内容从第2页开始
+                for (ProductPrintDocumentDO doc : documents) {
+                    contentStream.showText(doc.getName() + " ............................ " + pageNumber);
+                    contentStream.newLineAtOffset(0, -20);
+                    pageNumber += doc.getPageCount();
+                }
+
+                contentStream.endText();
+            }
+        } catch (Exception e) {
+            log.error("添加目录失败", e);
+        }
+    }
+
+    // 12. 合并PDF文档
+    private void mergePdfDocument(PDDocument targetDocument, byte[] sourcePdfBytes, int startPageNumber) {
+        try (PDDocument sourceDocument = PDDocument.load(new ByteArrayInputStream(sourcePdfBytes))) {
+
+            for (int i = 0; i < sourceDocument.getNumberOfPages(); i++) {
+                PDPage page = sourceDocument.getPage(i);
+                targetDocument.addPage(page);
+
+            }
+
+        } catch (Exception e) {
+            log.error("合并PDF失败", e);
+            throw new ServiceException(500, "PDF合并失败");
+        }
+    }
+
+    // 13. 添加页码
+    private void addPageNumber(PDDocument document, int pageIndex, int pageNumber) {
+        try {
+            PDPage page = document.getPage(pageIndex);
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page,
+                    PDPageContentStream.AppendMode.APPEND, false)) {
+
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA, 10);
+
+                float pageWidth = page.getMediaBox().getWidth();
+                contentStream.newLineAtOffset(pageWidth - 50, 30); // 右下角
+                contentStream.showText(String.valueOf(pageNumber));
+                contentStream.endText();
+            }
+        } catch (Exception e) {
+            log.error("添加页码失败，页面: {}", pageIndex, e);
+        }
+    }
+
+    // 14. 校验文档方法
+    private List<ProductPrintDocumentDO> validateDocumentsForMerge(Long userId, List<Long> documentIds) {
+        if (CollUtil.isEmpty(documentIds)) {
+            throw exception(PRINT_DOCUMENT_IDS_EMPTY);
+        }
+
+        if (documentIds.size() > 50) {
+            throw exception(DOCUMENT_MERGE_LIMIT_EXCEEDED, 50);
+        }
+
+        List<ProductPrintDocumentDO> documents = printDocumentMapper.selectByUserIdAndIds(userId, documentIds);
+        if (documents.size() != documentIds.size()) {
+            throw exception(PRINT_DOCUMENT_NOT_EXISTS);
+        }
+
+        // 检查文档状态
+        for (ProductPrintDocumentDO doc : documents) {
+            if (!ProductPrintDocumentDO.STATUS_NORMAL.equals(doc.getStatus())) {
+                throw exception(DOCUMENT_STATUS_INVALID, doc.getName());
+            }
+        }
+
+        return documents;
+    }
+
+    // 15. 下载文件方法
+    private byte[] downloadFile(String fileUrl) {
+        try {
+            return fileApi.getFileContent(fileUrl);
+        } catch (Exception e) {
+            log.error("下载文件失败: {}", fileUrl, e);
+            throw new ServiceException(500, "文件下载失败");
+        }
+    }
+
+    //上传合成PDF
+    private String uploadMergedPdf(byte[] pdfBytes, String fileName) {
+        try {
+            if (!fileName.toLowerCase().endsWith(".pdf")) {
+                fileName += ".pdf";
+            }
+            return fileApi.createFile(pdfBytes, null, null, null);
+        } catch (Exception e) {
+            log.error("上传合成PDF失败", e);
+            throw exception(PRINT_DOCUMENT_UPLOAD_FAILED);
+        }
+    }
+
+    //计算PDF页数
+    private int calculateTotalPages(byte[] pdfBytes) {
+        try (PDDocument document = PDDocument.load(new ByteArrayInputStream(pdfBytes))) {
+            return document.getNumberOfPages();
+        } catch (Exception e) {
+            log.error("计算PDF页数失败", e);
+            return 1;
+        }
+    }
+
+    // 18. 生成PDF缩略图
+    private String generatePdfThumbnail(byte[] pdfBytes) {
+        try (PDDocument document = PDDocument.load(new ByteArrayInputStream(pdfBytes))) {
+            if (document.getNumberOfPages() == 0) {
+                return null;
+            }
+            PDFRenderer renderer = new PDFRenderer(document);
+            BufferedImage image = renderer.renderImageWithDPI(0, 150, ImageType.RGB);
+
+            try (ByteArrayOutputStream thumbnailStream = new ByteArrayOutputStream()) {
+                ImageIO.write(image, "jpg", thumbnailStream);
+
+                String thumbnailFileName = "thumbnail_" + System.currentTimeMillis() + ".jpg";
+                return fileApi.createFile(thumbnailStream.toByteArray(), thumbnailFileName, null, null);
+            }
+        } catch (Exception e) {
+            log.error("生成PDF缩略图失败", e);
+            return null;
+        }
     }
 
 

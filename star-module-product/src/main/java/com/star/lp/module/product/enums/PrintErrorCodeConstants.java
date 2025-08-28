@@ -41,4 +41,11 @@ public interface PrintErrorCodeConstants {
     ErrorCode PRINT_ORDER_STATUS_INVALID = new ErrorCode(1_003_004_002, "打印订单状态无效");
     ErrorCode PRINT_ORDER_CANNOT_CANCEL = new ErrorCode(1_003_004_003, "打印订单无法取消");
 
+    // ========== 合成先关 1_010_008_000 ==========
+    public static final ErrorCode DOCUMENT_MERGE_FAILED = new ErrorCode(1_010_008_001, "文档合成失败");
+    public static final ErrorCode DOCUMENT_CONVERT_FAILED = new ErrorCode(1_010_008_002, "文档转换失败：{}");
+    public static final ErrorCode DOCUMENT_MERGE_LIMIT_EXCEEDED = new ErrorCode(1_010_008_003, "合成文档数量超过限制，最多支持{}个文档");
+    public static final ErrorCode DOCUMENT_STATUS_INVALID = new ErrorCode(1_010_008_004, "文档状态无效，无法合成：{}");
+    public static final ErrorCode PRINT_DOCUMENT_IDS_EMPTY = new ErrorCode(1_010_008_005, "文档ID列表不能为空");
+
 }

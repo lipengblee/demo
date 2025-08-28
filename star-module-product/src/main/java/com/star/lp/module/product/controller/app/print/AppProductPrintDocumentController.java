@@ -30,16 +30,12 @@ import static com.star.lp.framework.security.core.util.SecurityFrameworkUtils.ge
 @RequestMapping("/product/print-document")
 @Validated
 public class AppProductPrintDocumentController {
-
     @Resource
     private ProductPrintDocumentService printDocumentService;
-
     @Resource
     private ProductPrintDocumentMapper printDocumentMapper;
-
     @Resource
     private ProductPrintDocumentSpuService productPrintDocumentSpuService;
-
 
     @PostMapping("/upload")
     @Operation(summary = "上传打印文档")
@@ -102,13 +98,6 @@ public class AppProductPrintDocumentController {
     public CommonResult<AppProductPrintDocumentPreviewRespVO> previewDocument(@RequestParam("id") Long id) {
         AppProductPrintDocumentPreviewRespVO preview = printDocumentService.previewDocument(getLoginUserId(), id);
         return success(preview);
-    }
-
-    @GetMapping("/get-print-options")
-    @Operation(summary = "获得打印选项配置-基础版本")
-    public CommonResult<AppProductPrintOptionsRespVO> getPrintOptions() {
-        AppProductPrintOptionsRespVO options = printDocumentService.getPrintOptions();
-        return success(options);
     }
 
     @GetMapping("/get-print-options-type")
@@ -194,6 +183,14 @@ public class AppProductPrintDocumentController {
         statistics.setFileTypeDistribution(fileTypeDistribution);
 
         return success(statistics);
+    }
+
+    @PostMapping("/merge-to-pdf")
+    @Operation(summary = "合成多个文档为PDF")
+    public CommonResult<AppProductPrintDocumentRespVO> mergeDocumentsToPdf(
+            @Valid @RequestBody AppProductPrintDocumentMergeReqVO mergeReqVO) {
+        ProductPrintDocumentDO document = printDocumentService.mergeDocumentsToPdf(getLoginUserId(), mergeReqVO);
+        return success(BeanUtils.toBean(document, AppProductPrintDocumentRespVO.class));
     }
 
 }

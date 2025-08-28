@@ -8,7 +8,7 @@
   <name>star-module-product</name>
   <description>product 模块，主要实现商品相关功能
         例如：品牌、商品分类、spu、sku等功能。</description>
-  <url>https://github.com/YunaiV/ruoyi-vue-pro/star-module-mall/star-module-product</url>
+  <url></url>
   <dependencies>
     <dependency>
       <groupId>com.star.lp</groupId>
@@ -38,6 +38,48 @@
       <groupId>com.star.lp</groupId>
       <artifactId>star-spring-boot-starter-excel</artifactId>
       <version>2025.08-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi</artifactId>
+      <version>5.2.3</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>5.2.4</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml-full</artifactId>
+      <version>5.2.4</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>fr.opensagres.xdocreport</groupId>
+      <artifactId>xdocreport</artifactId>
+      <version>2.0.3</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.lowagie</groupId>
+      <artifactId>itext</artifactId>
+      <version>2.1.7</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.docx4j</groupId>
+      <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
+      <version>11.4.4</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.docx4j</groupId>
+      <artifactId>docx4j-export-fo</artifactId>
+      <version>11.4.4</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

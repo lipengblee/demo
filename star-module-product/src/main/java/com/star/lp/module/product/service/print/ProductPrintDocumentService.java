@@ -88,13 +88,6 @@ public interface ProductPrintDocumentService {
      *
      * @return 打印选项
      */
-    AppProductPrintOptionsRespVO getPrintOptions();
-
-    /**
-     * 获得打印选项配置
-     *
-     * @return 打印选项
-     */
     List<AppPrintSettingOptionRespVO> getPrintOptionsType();
 
     /**
@@ -113,5 +106,14 @@ public interface ProductPrintDocumentService {
      * @return 文档信息
      */
     ProductPrintDocumentDO validateDocumentOwner(Long userId, Long id);
+
+    /**
+     * 合成多个文档为PDF
+     *
+     * @param userId 用户编号
+     * @param mergeReqVO 合成请求
+     * @return 合成后的PDF文档
+     */
+    ProductPrintDocumentDO mergeDocumentsToPdf(Long userId, AppProductPrintDocumentMergeReqVO mergeReqVO);
 
 }
