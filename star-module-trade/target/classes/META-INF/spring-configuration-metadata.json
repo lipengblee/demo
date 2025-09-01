@@ -1,0 +1,96 @@
+{
+  "groups": [
+    {
+      "name": "star.trade.express",
+      "type": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties"
+    },
+    {
+      "name": "star.trade.express.kd-niao",
+      "type": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$KdNiaoConfig",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties"
+    },
+    {
+      "name": "star.trade.express.kd100",
+      "type": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$Kd100Config",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties"
+    },
+    {
+      "name": "star.trade.order",
+      "type": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "star.trade.express.client",
+      "type": "com.star.lp.module.trade.framework.delivery.core.enums.ExpressClientEnum",
+      "description": "快递客户端 默认不提供，需要提醒用户配置一个快递服务商。",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties"
+    },
+    {
+      "name": "star.trade.express.kd-niao.api-key",
+      "type": "java.lang.String",
+      "description": "快递鸟 API Key",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$KdNiaoConfig"
+    },
+    {
+      "name": "star.trade.express.kd-niao.business-id",
+      "type": "java.lang.String",
+      "description": "快递鸟用户 ID",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$KdNiaoConfig"
+    },
+    {
+      "name": "star.trade.express.kd-niao.request-type",
+      "type": "java.lang.String",
+      "description": "接口指令 1. 1002：免费版（只能查询申通、圆通快递） 2. 8001：付费版",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$KdNiaoConfig"
+    },
+    {
+      "name": "star.trade.express.kd100.customer",
+      "type": "java.lang.String",
+      "description": "快递 100 授权码",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$Kd100Config"
+    },
+    {
+      "name": "star.trade.express.kd100.key",
+      "type": "java.lang.String",
+      "description": "快递 100 授权 key",
+      "sourceType": "com.star.lp.module.trade.framework.delivery.config.TradeExpressProperties$Kd100Config"
+    },
+    {
+      "name": "star.trade.order.comment-expire-time",
+      "type": "java.time.Duration",
+      "description": "评论超时时间",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    },
+    {
+      "name": "star.trade.order.pay-app-key",
+      "type": "java.lang.String",
+      "description": "支付应用标识 在 pay 模块的 [支付管理 -> 应用信息] 里添加",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    },
+    {
+      "name": "star.trade.order.pay-expire-time",
+      "type": "java.time.Duration",
+      "description": "支付超时时间",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    },
+    {
+      "name": "star.trade.order.receive-expire-time",
+      "type": "java.time.Duration",
+      "description": "收货超时时间",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    },
+    {
+      "name": "star.trade.order.status-sync-to-wxa-enable",
+      "type": "java.lang.Boolean",
+      "description": "是否同步订单状态到微信小程序",
+      "sourceType": "com.star.lp.module.trade.framework.order.config.TradeOrderProperties"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}
