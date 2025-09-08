@@ -6,7 +6,7 @@ import javax.annotation.processing.Generated;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-01T13:17:24+0800",
+    date = "2025-09-03T13:36:43+0800",
     comments = "version: 1.6.3, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 public class TradeOrderLogConvertImpl implements TradeOrderLogConvert {

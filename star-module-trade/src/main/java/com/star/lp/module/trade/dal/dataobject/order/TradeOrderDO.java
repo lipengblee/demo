@@ -366,4 +366,15 @@ public class TradeOrderDO extends BaseDO {
      */
     private Long appointStoreId;
 
+    /**
+     * 打印状态
+     */
+    private String printStatus;
+
+    /**
+     * 打印状态
+     */
+    private Integer orderType;
+
+
 }

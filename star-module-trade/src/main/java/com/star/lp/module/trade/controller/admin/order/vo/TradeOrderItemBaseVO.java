@@ -64,4 +64,19 @@ public class TradeOrderItemBaseVO {
     @Schema(description = "售后状态", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     private Integer afterSaleStatus;
 
+    @Schema(description = "打印文档ID")
+    private Long documentId;
+
+    @Schema(description = "打印文档名称")
+    private String documentName;
+
+    @Schema(description = "打印文档URL")
+    private String documentFileUrl;
+
+    @Schema(description = "打印文档类型")
+    private String documentFileType;
+
+    @Schema(description = "打印文档页数")
+    private Integer documentPageCount;
+
 }

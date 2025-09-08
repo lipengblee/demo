@@ -69,7 +69,6 @@ public class TradeOrderLogDO extends BaseDO {
 
     /**
      * 操作类型
-     *
      * {@link TradeOrderOperateTypeEnum}
      */
     private Integer operateType;
@@ -77,5 +76,10 @@ public class TradeOrderLogDO extends BaseDO {
      * 订单日志信息
      */
     private String content;
+
+    /**
+     * 操作标题
+     */
+    private String title;
 
 }

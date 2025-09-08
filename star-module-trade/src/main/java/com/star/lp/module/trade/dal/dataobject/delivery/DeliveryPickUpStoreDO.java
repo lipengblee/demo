@@ -90,13 +90,10 @@ public class DeliveryPickUpStoreDO extends BaseDO {
 
     /**
      * 门店操作用户编号数组
-     *
      * 订单前端操作时，只有对应门店的操作员才能对订单数据进行操作
-     *
      */
     @TableField(typeHandler = LongListTypeHandler.class)
-    private List<Long> storeOperationUserIds;  //store_operation_user_ids
-//    private String storeOperationUserIds;
+    private List<Long> storeOperationUserIds;
 
     /**
      * 门店状态
@@ -104,5 +101,9 @@ public class DeliveryPickUpStoreDO extends BaseDO {
      * 枚举 {@link CommonStatusEnum}
      */
     private Integer status;
+    /**
+     * 门店联系人
+     */
+    private String contact;
 
 }

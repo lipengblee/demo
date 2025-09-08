@@ -31,15 +31,6 @@ public interface TradeOrderUpdateService {
     AppTradeOrderSettlementRespVO settlementOrder(Long userId, AppTradeOrderSettlementReqVO settlementReqVO);
 
     /**
-     * 获得订单结算信息
-     *
-     * @param userId          登录用户
-     * @param settlementReqVO 订单结算Print请求
-     * @return 订单结算结果
-     */
-    AppTradeOrderSettlementRespVO settlementOrderPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO);
-
-    /**
      * 【会员】创建交易订单
      *
      * @param userId      登录用户

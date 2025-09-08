@@ -5,6 +5,9 @@ import com.star.lp.framework.common.pojo.CommonResult;
 import com.star.lp.framework.common.pojo.PageResult;
 import com.star.lp.module.member.api.user.MemberUserApi;
 import com.star.lp.module.member.api.user.dto.MemberUserRespDTO;
+import com.star.lp.module.product.dal.dataobject.print.ProductPrintDocumentDO;
+import com.star.lp.module.product.dal.dataobject.print.ProductPrintDocumentSpuDO;
+import com.star.lp.module.product.dal.mysql.print.ProductPrintDocumentMapper;
 import com.star.lp.module.trade.controller.admin.order.vo.*;
 import com.star.lp.module.trade.convert.order.TradeOrderConvert;
 import com.star.lp.module.trade.dal.dataobject.order.TradeOrderDO;
@@ -22,10 +25,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.star.lp.framework.common.pojo.CommonResult.success;
 import static com.star.lp.framework.common.util.collection.CollectionUtils.convertList;
@@ -48,6 +50,9 @@ public class TradeOrderController {
 
     @Resource
     private MemberUserApi memberUserApi;
+
+    @Resource
+    private ProductPrintDocumentMapper productPrintDocumentMapper;
 
     @GetMapping("/page")
     @Operation(summary = "获得交易订单分页")
@@ -91,12 +96,48 @@ public class TradeOrderController {
         // 查询订单项
         List<TradeOrderItemDO> orderItems = tradeOrderQueryService.getOrderItemListByOrderId(id);
 
+
+        // 2.1.1 提取所有spuId
+        Set<Long> spuIds = orderItems.stream()
+                .map(TradeOrderItemDO::getSpuId)
+                .collect(Collectors.toSet());
+
+        // 2.1.2 批量查询spu与document的关联关系
+        List<ProductPrintDocumentSpuDO> spuDocumentRelations = tradeOrderQueryService.selectBySpuIds(spuIds);
+
+        // 2.1.3 构建spuId到documentId的映射
+        Map<Long, Long> spuToDocumentIdMap = spuDocumentRelations.stream()
+                .collect(Collectors.toMap(
+                        ProductPrintDocumentSpuDO::getSpuId,
+                        ProductPrintDocumentSpuDO::getDocumentId,
+                        (existing, replacement) -> existing // 处理重复spuId，保留第一个
+                ));
+
+        // 2.1.4 提取所有documentId
+        Set<Long> documentIds = new HashSet<>(spuToDocumentIdMap.values());
+
+        // 2.1.5 批量查询打印文档信息
+        Map<Long, ProductPrintDocumentDO> documentMap = documentIds.isEmpty() ? Collections.emptyMap() :
+                productPrintDocumentMapper.selectByUserIdAndIds(order.getUserId(), new ArrayList<>(documentIds))
+                        .stream()
+                        .collect(Collectors.toMap(ProductPrintDocumentDO::getId, Function.identity()));
+
+        // 2.1.6 构建订单项ID与打印文档的映射Map
+        Map<Long, ProductPrintDocumentDO> orderItemIdToDocumentMap = new HashMap<>(orderItems.size());
+        for (TradeOrderItemDO item : orderItems) {
+            Long documentId = spuToDocumentIdMap.get(item.getSpuId());
+            ProductPrintDocumentDO printDocument = documentMap.get(documentId);
+            if (printDocument != null) {
+                orderItemIdToDocumentMap.put(item.getId(), printDocument); // 用订单项ID作为key关联
+            }
+        }
+
         // 拼接数据
         MemberUserRespDTO user = memberUserApi.getUser(order.getUserId());
         MemberUserRespDTO brokerageUser = order.getBrokerageUserId() != null ?
                 memberUserApi.getUser(order.getBrokerageUserId()) : null;
         List<TradeOrderLogDO> orderLogs = tradeOrderLogService.getOrderLogListByOrderId(id);
-        return success(TradeOrderConvert.INSTANCE.convert(order, orderItems, orderLogs, user, brokerageUser));
+        return success(TradeOrderConvert.INSTANCE.convert(order, orderItems, orderLogs, user, brokerageUser,orderItemIdToDocumentMap));
     }
 
     @GetMapping("/get-express-track-list")

@@ -26,6 +26,32 @@ public interface DeliveryPickUpStoreMapper extends BaseMapperX<DeliveryPickUpSto
         return selectList(DeliveryPickUpStoreDO::getStatus, status);
     }
 
+    /**
+     * 根据验证用户ID查询门店
+     */
+    default DeliveryPickUpStoreDO selectByVerifyUserId(Long userId) {
+        return selectOne(new LambdaQueryWrapperX<DeliveryPickUpStoreDO>()
+                .like(DeliveryPickUpStoreDO::getVerifyUserIds, userId.toString())
+                .eq(DeliveryPickUpStoreDO::getDeleted, false));
+    }
+
+    /**
+     * 根据店铺运营用户ID查询取货店信息
+     *
+     * @param userId 店铺运营用户ID
+     * @return 返回匹配的取货店信息，如果没有找到则返回null
+     */
+    default DeliveryPickUpStoreDO selectByStoreOperationUserId(Long userId) {
+    // 使用LambdaQueryWrapperX创建查询条件
+        return selectOne(new LambdaQueryWrapperX<DeliveryPickUpStoreDO>()
+            // 查询storeOperationUserIds字段中包含userId字符串的记录
+                .like(DeliveryPickUpStoreDO::getStoreOperationUserIds, userId.toString())
+            // 只查询未被删除的记录（deleted字段为false）
+                .eq(DeliveryPickUpStoreDO::getDeleted, false)
+            // 按照ID降序排序
+                .orderByDesc(DeliveryPickUpStoreDO::getId));
+    }
+
 }
 
 

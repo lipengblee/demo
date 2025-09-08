@@ -58,6 +58,23 @@ public interface TradeOrderConvert {
 
     TradeOrderConvert INSTANCE = Mappers.getMapper(TradeOrderConvert.class);
 
+    // 提取订单项转换的公共逻辑
+    default List<AppTradeOrderItemRespVO> convertOrderItemsWithDocuments(List<TradeOrderItemDO> orderItems,
+                                                                         Map<Long, ProductPrintDocumentDO> documentMap) {
+        return orderItems.stream().map(item -> {
+            AppTradeOrderItemRespVO itemVO = convert03(item);
+            ProductPrintDocumentDO document = documentMap.get(item.getId());
+            if (document != null) {
+                itemVO.setDocumentId(document.getId());
+                itemVO.setDocumentName(document.getName());
+                itemVO.setDocumentFileType(document.getFileType());
+                itemVO.setDocumentFileUrl(document.getFileUrl());
+                itemVO.setDocumentPageCount(document.getPageCount());
+            }
+            return itemVO;
+        }).collect(Collectors.toList());
+    }
+
     @Mappings({
             @Mapping(target = "id", ignore = true),
             @Mapping(source = "userId", target = "userId"),
@@ -144,8 +161,12 @@ public interface TradeOrderConvert {
 
     default TradeOrderDetailRespVO convert(TradeOrderDO order, List<TradeOrderItemDO> orderItems,
                                            List<TradeOrderLogDO> orderLogs,
-                                           MemberUserRespDTO user, MemberUserRespDTO brokerageUser) {
-        TradeOrderDetailRespVO orderVO = convert2(order, orderItems);
+                                           MemberUserRespDTO user, MemberUserRespDTO brokerageUser,
+                                           Map<Long, ProductPrintDocumentDO> orderItemIdToDocumentMap) {
+        // 使用提取的公共方法处理订单项
+        List<AppTradeOrderItemRespVO> itemVOs = convertOrderItemsWithDocuments(orderItems, orderItemIdToDocumentMap);
+
+        TradeOrderDetailRespVO orderVO = convert05(order, itemVOs);
         // 处理收货地址
         orderVO.setReceiverAreaName(AreaUtils.format(order.getReceiverAreaId()));
         // 处理用户信息
@@ -155,7 +176,10 @@ public interface TradeOrderConvert {
         orderVO.setLogs(convertList03(orderLogs));
         return orderVO;
     }
+
     List<TradeOrderDetailRespVO.OrderLog> convertList03(List<TradeOrderLogDO> orderLogs);
+
+    TradeOrderDetailRespVO convert05(TradeOrderDO order, List<AppTradeOrderItemRespVO> items);
 
     TradeOrderDetailRespVO convert2(TradeOrderDO order, List<TradeOrderItemDO> items);
 
@@ -191,6 +215,7 @@ public interface TradeOrderConvert {
         }
         return orderVO;
     }
+
     AppTradeOrderDetailRespVO convert3(TradeOrderDO order, List<TradeOrderItemDO> items);
 
     AppTradeOrderItemRespVO convert03(TradeOrderItemDO bean);
@@ -319,34 +344,29 @@ public interface TradeOrderConvert {
         return reqBO;
     }
 
-    // 新增：接收订单项与打印文档的映射Map
-
     @Mappings({
-            @Mapping(source = "order.id", target = "id"), // 明确指定目标 id 来自 order 的 id
-            @Mapping(source = "order.createTime", target = "createTime"), // 明确指定目标 id 来自 order 的 id
-            @Mapping(source = "order.status", target = "status"), // 明确指定目标 id 来自 order 的 id
-            @Mapping(target = "items", expression = "java(convertOrderItems(orderItems, orderItemIdToDocumentMap))"),
-            @Mapping(target = "payExpireTime", ignore = true) // 忽略自动映射，手动处理
+            @Mapping(source = "order.id", target = "id"),
+            @Mapping(source = "order.createTime", target = "createTime"),
+            @Mapping(source = "order.status", target = "status"),
+            @Mapping(target = "items", expression = "java(convertOrderItemsWithDocuments(orderItems, orderItemIdToDocumentMap))"),
+            @Mapping(target = "payExpireTime", ignore = true)
     })
-    AppTradeOrderDetailRespVO convert02(TradeOrderDO order, List<TradeOrderItemDO> orderItems,
-                                        TradeOrderProperties properties, DeliveryExpressDO express,
-                                        Map<Long, ProductPrintDocumentDO> orderItemIdToDocumentMap);
-
-    // 转换订单项列表，设置打印文档信息
-    default List<AppTradeOrderItemRespVO> convertOrderItems(List<TradeOrderItemDO> orderItems,
-                                                            Map<Long, ProductPrintDocumentDO> documentMap) {
-        return orderItems.stream().map(item -> {
-            AppTradeOrderItemRespVO itemVO = convert03(item); // 原有订单项转换
-            ProductPrintDocumentDO document = documentMap.get(item.getId());
-            if (document != null) {
-                itemVO.setDocumentId(document.getId());
-                itemVO.setDocumentName(document.getName());
-                itemVO.setDocumentFileType(document.getFileType());
-                itemVO.setDocumentFileUrl(document.getFileUrl());
-                itemVO.setDocumentPageCount(document.getPageCount());
-            }
-            return itemVO;
-        }).collect(Collectors.toList());
+    default AppTradeOrderDetailRespVO convert02(TradeOrderDO order, List<TradeOrderItemDO> orderItems,
+                                                TradeOrderProperties properties, DeliveryExpressDO express,
+                                                Map<Long, ProductPrintDocumentDO> orderItemIdToDocumentMap) {
+        AppTradeOrderDetailRespVO orderVO = convert3(order, orderItems);
+        orderVO.setPayExpireTime(order.getCreateTime().plus(properties.getPayExpireTime()));
+        // 使用提取的公共方法处理订单项
+        List<AppTradeOrderItemRespVO> processedItems = convertOrderItemsWithDocuments(orderItems, orderItemIdToDocumentMap);
+        orderVO.setItems(processedItems);
+        if (StrUtil.isNotEmpty(order.getPayChannelCode())) {
+            orderVO.setPayChannelName(DictFrameworkUtils.parseDictDataLabel(DictTypeConstants.CHANNEL_CODE, order.getPayChannelCode()));
+        }
+        // 处理收货地址
+        orderVO.setReceiverAreaName(AreaUtils.format(order.getReceiverAreaId()));
+        if (express != null) {
+            orderVO.setLogisticsId(express.getId()).setLogisticsName(express.getName());
+        }
+        return orderVO;
     }
-
 }

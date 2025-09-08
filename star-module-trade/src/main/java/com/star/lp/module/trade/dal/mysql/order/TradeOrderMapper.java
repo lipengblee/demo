@@ -10,6 +10,7 @@ import com.star.lp.module.trade.dal.dataobject.order.TradeOrderDO;
 import com.star.lp.module.trade.enums.order.TradeOrderTypeEnum;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -136,5 +137,32 @@ public interface TradeOrderMapper extends BaseMapperX<TradeOrderDO> {
                 .eq(TradeOrderDO::getCombinationActivityId, combinationActivityId)
         );
     }
+
+    /**
+     * 统计门店指定打印状态的订单数量
+     */
+    @Select("SELECT COUNT(*) FROM trade_order WHERE appoint_store_id = #{storeId} AND print_status = #{printStatus}")
+    Integer countByStoreIdAndPrintStatus(Long storeId, String printStatus);
+
+    /**
+     * 统计门店今日完成的订单数量
+     */
+    @Select("SELECT COUNT(*) FROM trade_order WHERE appoint_store_id = #{storeId} " +
+            "AND status = 40 AND DATE(complete_time) = CURDATE()")
+    Integer countCompletedOrdersToday(Long storeId, java.time.LocalDateTime startOfDay);
+
+    /**
+     * 统计门店今日订单总数
+     */
+    @Select("SELECT COUNT(*) FROM trade_order WHERE appoint_store_id = #{storeId} " +
+            "AND DATE(create_time) = CURDATE()")
+    Integer countTotalOrdersToday(Long storeId, java.time.LocalDateTime startOfDay);
+
+    /**
+     * 统计门店今日营业额
+     */
+    @Select("SELECT COALESCE(SUM(pay_price), 0) FROM trade_order WHERE appoint_store_id = #{storeId} " +
+            "AND pay_status = 1 AND DATE(create_time) = CURDATE()")
+    Integer getTodayAmount(Long storeId, java.time.LocalDateTime startOfDay);
 
 }

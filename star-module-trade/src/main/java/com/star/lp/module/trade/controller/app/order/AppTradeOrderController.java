@@ -1,9 +1,7 @@
 package com.star.lp.module.trade.controller.app.order;
 
-import cn.hutool.core.collection.CollUtil;
 import com.star.lp.framework.common.pojo.CommonResult;
 import com.star.lp.framework.common.pojo.PageResult;
-import com.star.lp.framework.mybatis.core.query.LambdaQueryWrapperX;
 import com.star.lp.module.pay.api.notify.dto.PayOrderNotifyReqDTO;
 import com.star.lp.module.product.dal.dataobject.print.ProductPrintDocumentDO;
 import com.star.lp.module.product.dal.dataobject.print.ProductPrintDocumentSpuDO;
@@ -31,7 +29,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -43,8 +40,6 @@ import java.util.stream.Collectors;
 import static com.star.lp.framework.common.pojo.CommonResult.success;
 import static com.star.lp.framework.common.util.collection.CollectionUtils.convertSet;
 import static com.star.lp.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId;
-import static com.star.lp.module.trade.enums.PrintErrorCodeConstants.PRINT_PRICE_CONFIG_NOT_EXISTS;
-import static com.star.lp.module.trade.enums.PrintErrorCodeConstants.TRADE_ORDER_PRINT_ITEMS_EMPTY;
 
 @Tag(name = "用户 App - 交易订单")
 @RestController
@@ -52,7 +47,6 @@ import static com.star.lp.module.trade.enums.PrintErrorCodeConstants.TRADE_ORDER
 @Validated
 @Slf4j
 public class AppTradeOrderController {
-
     @Resource
     private TradeOrderUpdateService tradeOrderUpdateService;
     @Resource
@@ -63,13 +57,8 @@ public class AppTradeOrderController {
     private AfterSaleService afterSaleService;
     @Resource
     private TradePriceService priceService;
-
     @Resource
     private TradeOrderProperties tradeOrderProperties;
-
-    @Resource
-    private ProductPrintDocumentSpuMapper productPrintDocumentSpuMapper;
-
     @Resource
     private ProductPrintDocumentMapper productPrintDocumentMapper;
 
@@ -77,23 +66,6 @@ public class AppTradeOrderController {
     @Operation(summary = "获得订单结算信息")
     public CommonResult<AppTradeOrderSettlementRespVO> settlementOrder(@Valid AppTradeOrderSettlementReqVO settlementReqVO) {
         return success(tradeOrderUpdateService.settlementOrder(getLoginUserId(), settlementReqVO));
-    }
-
-    @GetMapping("/settlement-print")
-    @Operation(summary = "获得打印订单结算信息")
-    public CommonResult<AppTradeOrderSettlementRespVO> settlementOrderPrint(@Valid AppTradeOrderSettlementPrintReqVO settlementReqVO) {
-        // 1. 基础参数校验
-        if (settlementReqVO == null) {
-            return CommonResult.error(PRINT_PRICE_CONFIG_NOT_EXISTS);
-        }
-
-        // 2. 获取打印文档信息并校验
-        List<AppTradeOrderSettlementPrintReqVO.Item> printItems = settlementReqVO.getItems();
-        if (CollUtil.isEmpty(printItems)) {
-            return CommonResult.error(TRADE_ORDER_PRINT_ITEMS_EMPTY);
-        }
-
-        return success(tradeOrderUpdateService.settlementOrderPrint(getLoginUserId(), settlementReqVO));
     }
 
     @GetMapping("/settlement-product")
@@ -144,7 +116,6 @@ public class AppTradeOrderController {
         // 2.1 查询订单项
         List<TradeOrderItemDO> orderItems = tradeOrderQueryService.getOrderItemListByOrderId(order.getId());
 
-        // 新增逻辑：查询打印文档信息
         // 2.1.1 提取所有spuId
         Set<Long> spuIds = orderItems.stream()
                 .map(TradeOrderItemDO::getSpuId)

@@ -56,4 +56,15 @@ public interface TradeOrderItemMapper extends BaseMapperX<TradeOrderItemDO> {
         return CollUtil.getFirst(result) != null ? MapUtil.getInt(result.get(0), "sumCount") : 0;
     }
 
+    /**
+     * 根据订单ID列表查询订单项
+     */
+    default List<TradeOrderItemDO> selectListByOrderIds(Set<Long> orderIds) {
+        if (CollUtil.isEmpty(orderIds)) {
+            return List.of();
+        }
+        return selectList(new LambdaQueryWrapperX<TradeOrderItemDO>()
+                .in(TradeOrderItemDO::getOrderId, orderIds));
+    }
+
 }

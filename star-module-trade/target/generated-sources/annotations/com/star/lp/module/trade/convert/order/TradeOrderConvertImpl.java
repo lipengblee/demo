@@ -4,7 +4,6 @@ import com.star.lp.module.member.api.address.dto.MemberAddressRespDTO;
 import com.star.lp.module.member.api.user.dto.MemberUserRespDTO;
 import com.star.lp.module.product.api.comment.dto.ProductCommentCreateReqDTO;
 import com.star.lp.module.product.api.property.dto.ProductPropertyValueDetailRespDTO;
-import com.star.lp.module.product.dal.dataobject.print.ProductPrintDocumentDO;
 import com.star.lp.module.promotion.api.combination.dto.CombinationRecordCreateReqDTO;
 import com.star.lp.module.trade.api.order.dto.TradeOrderRespDTO;
 import com.star.lp.module.trade.controller.admin.base.member.user.MemberUserRespVO;
@@ -24,12 +23,10 @@ import com.star.lp.module.trade.controller.app.order.vo.AppTradeOrderSettlementR
 import com.star.lp.module.trade.controller.app.order.vo.AppTradeOrderSettlementRespVO;
 import com.star.lp.module.trade.controller.app.order.vo.item.AppTradeOrderItemCommentCreateReqVO;
 import com.star.lp.module.trade.controller.app.order.vo.item.AppTradeOrderItemRespVO;
-import com.star.lp.module.trade.dal.dataobject.delivery.DeliveryExpressDO;
 import com.star.lp.module.trade.dal.dataobject.order.TradeOrderDO;
 import com.star.lp.module.trade.dal.dataobject.order.TradeOrderItemDO;
 import com.star.lp.module.trade.dal.dataobject.order.TradeOrderLogDO;
 import com.star.lp.module.trade.framework.delivery.core.client.dto.ExpressTrackRespDTO;
-import com.star.lp.module.trade.framework.order.config.TradeOrderProperties;
 import com.star.lp.module.trade.service.price.bo.TradePriceCalculateReqBO;
 import com.star.lp.module.trade.service.price.bo.TradePriceCalculateRespBO;
 import java.util.ArrayList;
@@ -40,7 +37,7 @@ import javax.annotation.processing.Generated;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-09-01T17:06:20+0800",
+    date = "2025-09-05T15:05:10+0800",
     comments = "version: 1.6.3, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 public class TradeOrderConvertImpl implements TradeOrderConvert {
@@ -244,6 +241,64 @@ public class TradeOrderConvertImpl implements TradeOrderConvert {
         }
 
         return list;
+    }
+
+    @Override
+    public TradeOrderDetailRespVO convert05(TradeOrderDO order, List<AppTradeOrderItemRespVO> items) {
+        if ( order == null && items == null ) {
+            return null;
+        }
+
+        TradeOrderDetailRespVO tradeOrderDetailRespVO = new TradeOrderDetailRespVO();
+
+        if ( order != null ) {
+            tradeOrderDetailRespVO.setId( order.getId() );
+            tradeOrderDetailRespVO.setNo( order.getNo() );
+            tradeOrderDetailRespVO.setCreateTime( order.getCreateTime() );
+            tradeOrderDetailRespVO.setType( order.getType() );
+            tradeOrderDetailRespVO.setTerminal( order.getTerminal() );
+            tradeOrderDetailRespVO.setUserId( order.getUserId() );
+            tradeOrderDetailRespVO.setUserIp( order.getUserIp() );
+            tradeOrderDetailRespVO.setUserRemark( order.getUserRemark() );
+            tradeOrderDetailRespVO.setStatus( order.getStatus() );
+            tradeOrderDetailRespVO.setProductCount( order.getProductCount() );
+            tradeOrderDetailRespVO.setFinishTime( order.getFinishTime() );
+            tradeOrderDetailRespVO.setCancelTime( order.getCancelTime() );
+            tradeOrderDetailRespVO.setCancelType( order.getCancelType() );
+            tradeOrderDetailRespVO.setRemark( order.getRemark() );
+            tradeOrderDetailRespVO.setPayOrderId( order.getPayOrderId() );
+            tradeOrderDetailRespVO.setPayStatus( order.getPayStatus() );
+            tradeOrderDetailRespVO.setPayTime( order.getPayTime() );
+            tradeOrderDetailRespVO.setPayChannelCode( order.getPayChannelCode() );
+            tradeOrderDetailRespVO.setTotalPrice( order.getTotalPrice() );
+            tradeOrderDetailRespVO.setDiscountPrice( order.getDiscountPrice() );
+            tradeOrderDetailRespVO.setDeliveryPrice( order.getDeliveryPrice() );
+            tradeOrderDetailRespVO.setAdjustPrice( order.getAdjustPrice() );
+            tradeOrderDetailRespVO.setPayPrice( order.getPayPrice() );
+            tradeOrderDetailRespVO.setDeliveryType( order.getDeliveryType() );
+            tradeOrderDetailRespVO.setPickUpStoreId( order.getPickUpStoreId() );
+            if ( order.getPickUpVerifyCode() != null ) {
+                tradeOrderDetailRespVO.setPickUpVerifyCode( Long.parseLong( order.getPickUpVerifyCode() ) );
+            }
+            tradeOrderDetailRespVO.setLogisticsId( order.getLogisticsId() );
+            tradeOrderDetailRespVO.setLogisticsNo( order.getLogisticsNo() );
+            tradeOrderDetailRespVO.setDeliveryTime( order.getDeliveryTime() );
+            tradeOrderDetailRespVO.setReceiveTime( order.getReceiveTime() );
+            tradeOrderDetailRespVO.setReceiverName( order.getReceiverName() );
+            tradeOrderDetailRespVO.setReceiverMobile( order.getReceiverMobile() );
+            tradeOrderDetailRespVO.setReceiverAreaId( order.getReceiverAreaId() );
+            tradeOrderDetailRespVO.setReceiverDetailAddress( order.getReceiverDetailAddress() );
+            tradeOrderDetailRespVO.setRefundPrice( order.getRefundPrice() );
+            tradeOrderDetailRespVO.setCouponId( order.getCouponId() );
+            tradeOrderDetailRespVO.setCouponPrice( order.getCouponPrice() );
+            tradeOrderDetailRespVO.setPointPrice( order.getPointPrice() );
+            tradeOrderDetailRespVO.setVipPrice( order.getVipPrice() );
+            tradeOrderDetailRespVO.setBrokerageUserId( order.getBrokerageUserId() );
+            tradeOrderDetailRespVO.setAppointStoreId( order.getAppointStoreId() );
+        }
+        tradeOrderDetailRespVO.setItems( appTradeOrderItemRespVOListToItemList( items ) );
+
+        return tradeOrderDetailRespVO;
     }
 
     @Override
@@ -625,58 +680,6 @@ public class TradeOrderConvertImpl implements TradeOrderConvert {
         return combinationRecordCreateReqDTO;
     }
 
-    @Override
-    public AppTradeOrderDetailRespVO convert02(TradeOrderDO order, List<TradeOrderItemDO> orderItems, TradeOrderProperties properties, DeliveryExpressDO express, Map<Long, ProductPrintDocumentDO> orderItemIdToDocumentMap) {
-        if ( order == null && orderItems == null && properties == null && express == null && orderItemIdToDocumentMap == null ) {
-            return null;
-        }
-
-        AppTradeOrderDetailRespVO appTradeOrderDetailRespVO = new AppTradeOrderDetailRespVO();
-
-        if ( order != null ) {
-            appTradeOrderDetailRespVO.setId( order.getId() );
-            appTradeOrderDetailRespVO.setCreateTime( order.getCreateTime() );
-            appTradeOrderDetailRespVO.setStatus( order.getStatus() );
-            appTradeOrderDetailRespVO.setNo( order.getNo() );
-            appTradeOrderDetailRespVO.setType( order.getType() );
-            appTradeOrderDetailRespVO.setUserRemark( order.getUserRemark() );
-            appTradeOrderDetailRespVO.setProductCount( order.getProductCount() );
-            appTradeOrderDetailRespVO.setFinishTime( order.getFinishTime() );
-            appTradeOrderDetailRespVO.setCancelTime( order.getCancelTime() );
-            appTradeOrderDetailRespVO.setCommentStatus( order.getCommentStatus() );
-            appTradeOrderDetailRespVO.setPayStatus( order.getPayStatus() );
-            appTradeOrderDetailRespVO.setPayOrderId( order.getPayOrderId() );
-            appTradeOrderDetailRespVO.setPayTime( order.getPayTime() );
-            appTradeOrderDetailRespVO.setPayChannelCode( order.getPayChannelCode() );
-            appTradeOrderDetailRespVO.setTotalPrice( order.getTotalPrice() );
-            appTradeOrderDetailRespVO.setDiscountPrice( order.getDiscountPrice() );
-            appTradeOrderDetailRespVO.setDeliveryPrice( order.getDeliveryPrice() );
-            appTradeOrderDetailRespVO.setAdjustPrice( order.getAdjustPrice() );
-            appTradeOrderDetailRespVO.setPayPrice( order.getPayPrice() );
-            appTradeOrderDetailRespVO.setDeliveryType( order.getDeliveryType() );
-            appTradeOrderDetailRespVO.setLogisticsId( order.getLogisticsId() );
-            appTradeOrderDetailRespVO.setLogisticsNo( order.getLogisticsNo() );
-            appTradeOrderDetailRespVO.setDeliveryTime( order.getDeliveryTime() );
-            appTradeOrderDetailRespVO.setReceiveTime( order.getReceiveTime() );
-            appTradeOrderDetailRespVO.setReceiverName( order.getReceiverName() );
-            appTradeOrderDetailRespVO.setReceiverMobile( order.getReceiverMobile() );
-            appTradeOrderDetailRespVO.setReceiverAreaId( order.getReceiverAreaId() );
-            appTradeOrderDetailRespVO.setReceiverDetailAddress( order.getReceiverDetailAddress() );
-            appTradeOrderDetailRespVO.setPickUpStoreId( order.getPickUpStoreId() );
-            appTradeOrderDetailRespVO.setPickUpVerifyCode( order.getPickUpVerifyCode() );
-            appTradeOrderDetailRespVO.setRefundStatus( order.getRefundStatus() );
-            appTradeOrderDetailRespVO.setRefundPrice( order.getRefundPrice() );
-            appTradeOrderDetailRespVO.setCouponId( order.getCouponId() );
-            appTradeOrderDetailRespVO.setCouponPrice( order.getCouponPrice() );
-            appTradeOrderDetailRespVO.setPointPrice( order.getPointPrice() );
-            appTradeOrderDetailRespVO.setVipPrice( order.getVipPrice() );
-            appTradeOrderDetailRespVO.setCombinationRecordId( order.getCombinationRecordId() );
-        }
-        appTradeOrderDetailRespVO.setItems( convertOrderItems(orderItems, orderItemIdToDocumentMap) );
-
-        return appTradeOrderDetailRespVO;
-    }
-
     private Integer calculateRespBOPriceTotalPrice(TradePriceCalculateRespBO tradePriceCalculateRespBO) {
         TradePriceCalculateRespBO.Price price = tradePriceCalculateRespBO.getPrice();
         if ( price == null ) {
@@ -838,6 +841,74 @@ public class TradeOrderConvertImpl implements TradeOrderConvert {
         orderLog.setUserType( tradeOrderLogDO.getUserType() );
 
         return orderLog;
+    }
+
+    protected ProductPropertyValueDetailRespVO appProductPropertyValueDetailRespVOToProductPropertyValueDetailRespVO(AppProductPropertyValueDetailRespVO appProductPropertyValueDetailRespVO) {
+        if ( appProductPropertyValueDetailRespVO == null ) {
+            return null;
+        }
+
+        ProductPropertyValueDetailRespVO productPropertyValueDetailRespVO = new ProductPropertyValueDetailRespVO();
+
+        productPropertyValueDetailRespVO.setPropertyId( appProductPropertyValueDetailRespVO.getPropertyId() );
+        productPropertyValueDetailRespVO.setPropertyName( appProductPropertyValueDetailRespVO.getPropertyName() );
+        productPropertyValueDetailRespVO.setValueId( appProductPropertyValueDetailRespVO.getValueId() );
+        productPropertyValueDetailRespVO.setValueName( appProductPropertyValueDetailRespVO.getValueName() );
+
+        return productPropertyValueDetailRespVO;
+    }
+
+    protected List<ProductPropertyValueDetailRespVO> appProductPropertyValueDetailRespVOListToProductPropertyValueDetailRespVOList(List<AppProductPropertyValueDetailRespVO> list) {
+        if ( list == null ) {
+            return null;
+        }
+
+        List<ProductPropertyValueDetailRespVO> list1 = new ArrayList<ProductPropertyValueDetailRespVO>( list.size() );
+        for ( AppProductPropertyValueDetailRespVO appProductPropertyValueDetailRespVO : list ) {
+            list1.add( appProductPropertyValueDetailRespVOToProductPropertyValueDetailRespVO( appProductPropertyValueDetailRespVO ) );
+        }
+
+        return list1;
+    }
+
+    protected TradeOrderDetailRespVO.Item appTradeOrderItemRespVOToItem(AppTradeOrderItemRespVO appTradeOrderItemRespVO) {
+        if ( appTradeOrderItemRespVO == null ) {
+            return null;
+        }
+
+        TradeOrderDetailRespVO.Item item = new TradeOrderDetailRespVO.Item();
+
+        item.setId( appTradeOrderItemRespVO.getId() );
+        item.setOrderId( appTradeOrderItemRespVO.getOrderId() );
+        item.setSpuId( appTradeOrderItemRespVO.getSpuId() );
+        item.setSpuName( appTradeOrderItemRespVO.getSpuName() );
+        item.setSkuId( appTradeOrderItemRespVO.getSkuId() );
+        item.setPicUrl( appTradeOrderItemRespVO.getPicUrl() );
+        item.setCount( appTradeOrderItemRespVO.getCount() );
+        item.setPrice( appTradeOrderItemRespVO.getPrice() );
+        item.setPayPrice( appTradeOrderItemRespVO.getPayPrice() );
+        item.setAfterSaleStatus( appTradeOrderItemRespVO.getAfterSaleStatus() );
+        item.setDocumentId( appTradeOrderItemRespVO.getDocumentId() );
+        item.setDocumentName( appTradeOrderItemRespVO.getDocumentName() );
+        item.setDocumentFileUrl( appTradeOrderItemRespVO.getDocumentFileUrl() );
+        item.setDocumentFileType( appTradeOrderItemRespVO.getDocumentFileType() );
+        item.setDocumentPageCount( appTradeOrderItemRespVO.getDocumentPageCount() );
+        item.setProperties( appProductPropertyValueDetailRespVOListToProductPropertyValueDetailRespVOList( appTradeOrderItemRespVO.getProperties() ) );
+
+        return item;
+    }
+
+    protected List<TradeOrderDetailRespVO.Item> appTradeOrderItemRespVOListToItemList(List<AppTradeOrderItemRespVO> list) {
+        if ( list == null ) {
+            return null;
+        }
+
+        List<TradeOrderDetailRespVO.Item> list1 = new ArrayList<TradeOrderDetailRespVO.Item>( list.size() );
+        for ( AppTradeOrderItemRespVO appTradeOrderItemRespVO : list ) {
+            list1.add( appTradeOrderItemRespVOToItem( appTradeOrderItemRespVO ) );
+        }
+
+        return list1;
     }
 
     protected TradeOrderDetailRespVO.Item tradeOrderItemDOToItem1(TradeOrderItemDO tradeOrderItemDO) {

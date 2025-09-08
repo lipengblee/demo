@@ -25,6 +25,8 @@ import com.star.lp.module.pay.enums.order.PayOrderStatusEnum;
 import com.star.lp.module.pay.enums.refund.PayRefundStatusEnum;
 import com.star.lp.module.product.api.comment.ProductCommentApi;
 import com.star.lp.module.product.api.comment.dto.ProductCommentCreateReqDTO;
+import com.star.lp.module.product.api.spu.ProductSpuApi;
+import com.star.lp.module.product.api.spu.dto.ProductSpuRespDTO;
 import com.star.lp.module.promotion.api.combination.CombinationRecordApi;
 import com.star.lp.module.promotion.api.combination.dto.CombinationRecordRespDTO;
 import com.star.lp.module.promotion.enums.combination.CombinationRecordStatusEnum;
@@ -74,6 +76,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.star.lp.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static com.star.lp.framework.common.util.collection.CollectionUtils.*;
@@ -113,7 +116,6 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
     private TradeMessageService tradeMessageService;
     @Resource
     private DeliveryPickUpStoreService pickUpStoreService;
-
     @Resource
     private PayOrderApi payOrderApi;
     @Resource
@@ -126,9 +128,10 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
     public PayRefundApi payRefundApi;
     @Resource
     private CombinationRecordApi combinationRecordApi;
-
     @Resource
     private TradeOrderProperties tradeOrderProperties;
+    @Resource
+    private ProductSpuApi productSpuApi;
 
     // =================== Order ===================
 
@@ -145,23 +148,6 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
 
         // 3. 拼接返回
         return TradeOrderConvert.INSTANCE.convert(calculateRespBO, address);
-    }
-
-    @Override
-    public AppTradeOrderSettlementRespVO settlementOrderPrint(Long userId, AppTradeOrderSettlementPrintReqVO settlementReqVO) {
-
-        // 1. 获得收货地址
-        MemberAddressRespDTO address = getAddress(userId, settlementReqVO.getAddressId());
-        if (address != null) {
-            settlementReqVO.setAddressId(address.getId());
-        }
-
-        // 2. 计算价格
-        TradePriceCalculatePrintRespBO calculateRespBO = calculatePrintPrice(userId, settlementReqVO);
-
-        // 3. 拼接返回
-//        return TradeOrderConvert.INSTANCE.convert(calculateRespBO, address);
-        return null;
     }
 
     /**
@@ -219,16 +205,27 @@ public class TradeOrderUpdateServiceImpl implements TradeOrderUpdateService {
     @Transactional(rollbackFor = Exception.class)
     @TradeOrderLog(operateType = TradeOrderOperateTypeEnum.MEMBER_CREATE)
     public TradeOrderDO createOrder(Long userId, AppTradeOrderCreateReqVO createReqVO) {
-        // 1.1 价格计算
+        // 价格计算
         TradePriceCalculateRespBO calculateRespBO = calculatePrice(userId, createReqVO);
-        // 1.2 构建订单
+        // 构建订单
         TradeOrderDO order = buildTradeOrder(userId, createReqVO, calculateRespBO);
         List<TradeOrderItemDO> orderItems = buildTradeOrderItems(order, calculateRespBO);
-
-        // 2. 订单创建前的逻辑
+        // 检查是否存在product_type为2的商品
+        boolean hasProductType2 = orderItems.stream()
+                .map(TradeOrderItemDO::getSpuId)
+                .filter(Objects::nonNull)
+                .anyMatch(spuId -> {
+                    ProductSpuRespDTO spu = productSpuApi.getSpu(spuId);
+                    return spu != null && Objects.equals(spu.getProductType(), 2);
+                });
+        // 如果存在product_type=2，则设置订单类型为2
+        if (hasProductType2) {
+            order.setOrderType(2);
+            log.info("订单中存在product_type为2的商品");
+        }
+        // 订单创建前的逻辑
         tradeOrderHandlers.forEach(handler -> handler.beforeOrderCreate(order, orderItems));
-
-        // 3. 保存订单
+        // 保存订单
         tradeOrderMapper.insert(order);
         orderItems.forEach(orderItem -> orderItem.setOrderId(order.getId()));
         tradeOrderItemMapper.insertBatch(orderItems);
