@@ -1,1 +1,0 @@
-package com.star.lp.module.trade.api;
