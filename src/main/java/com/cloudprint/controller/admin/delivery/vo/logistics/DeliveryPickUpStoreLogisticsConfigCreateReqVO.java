@@ -1,0 +1,17 @@
+package com.star.lp.module.trade.controller.admin.delivery.vo.logistics;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+/**
+ * 管理后台 - 自提门店物流配置创建 Request VO
+ */
+@Schema(description = "管理后台 - 自提门店物流配置创建 Request VO")
+@Data
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class DeliveryPickUpStoreLogisticsConfigCreateReqVO extends DeliveryPickUpStoreLogisticsConfigBaseVO {
+
+}
